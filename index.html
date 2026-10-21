@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tennis Inside</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0E1116; --card:#171B22; --card2:#12161C; --line:#262C36; --text:#F2F4F7; --muted:#9AA3AF; --dim:#6B7380;
+  --accent:#C8F542; --accent-ink:#0E1116; --blue:#8EC5FF; --win:#5BD68A; --lose:#FF6B6B; --warn:#FFC24B;
+  --r:18px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Manrope,system-ui,-apple-system,sans-serif;
+  font-size:15px;line-height:1.4}
+button{font-family:inherit;color:inherit}
+#app{max-width:520px;margin:0 auto;padding:0 0 calc(84px + env(safe-area-inset-bottom))}
+.top{padding:16px 16px 8px;display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#E6FF7A,#9BC820 60%,#6E9010);
+  box-shadow:0 0 18px rgba(200,245,66,.35);flex:none;position:relative}
+.logo:after{content:"";position:absolute;inset:6px 3px;border:2px solid rgba(14,17,22,.55);border-left:0;border-right:0;border-radius:50%}
+.brand{font-weight:800;font-size:19px;letter-spacing:.2px}
+.sub{color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:8px;padding:8px 16px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-size:14px;
+  font-weight:600;color:var(--muted);cursor:pointer}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.sec{padding:14px 16px 6px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.badge{font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;background:#1F2630;color:var(--muted);letter-spacing:.3px}
+.badge.atp{background:#1E2A3D;color:var(--blue)} .badge.ch{background:#2A2418;color:var(--warn)}
+.badge.val{background:var(--accent);color:var(--accent-ink)}
+.dot{width:8px;height:8px;border-radius:50%;flex:none}
+.Hard{background:#4DA3FF}.Clay{background:#FF8A3D}.Grass{background:#5BD68A}
+.card{margin:0 16px 10px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.match{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;cursor:pointer;
+  margin:0 16px 8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
+.match:active{transform:scale(.99)}
+.time{font-size:13px;color:var(--muted);font-weight:700}
+.pl{display:flex;align-items:center;gap:6px;min-width:0}
+.pl .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.pl .rk{color:var(--dim);font-size:12px;flex:none}
+.pl.fav .n{font-weight:800}
+.pl.won .n{color:var(--accent)}
+.odds{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.o{font-size:13px;font-weight:700;background:var(--card2);border-radius:8px;padding:2px 8px;min-width:46px;text-align:center}
+.pbar{grid-column:2/4;height:4px;border-radius:2px;background:#262C36;overflow:hidden;margin-top:2px}
+.pbar i{display:block;height:4px;background:var(--accent)}
+.meta{grid-column:2/4;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12px;color:var(--muted)}
+.badge{white-space:nowrap}
+.empty{color:var(--muted);text-align:center;padding:40px 16px}
+/* матч */
+.back{width:44px;height:44px;border-radius:12px;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:start;padding:8px 16px 14px}
+.who{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.ava{width:62px;height:62px;border-radius:50%;background:#1F2630;display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:20px;color:var(--muted)}
+.ava.fav{border:2px solid var(--accent);color:var(--accent)}
+.who .n{font-weight:800;font-size:16px}
+.who .s{font-size:12px;color:var(--muted)}
+.vsx{font-weight:800;color:var(--dim);padding-top:22px}
+.h{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+.big{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.big .v{font-size:32px;font-weight:800;color:var(--accent)}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin:8px 0 12px}
+.bar i{display:block;height:8px;background:var(--accent)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cell{background:var(--card2);border-radius:12px;padding:10px}
+.cell .k{font-size:12px;color:var(--muted)} .cell .v{font-size:17px;font-weight:800}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0;padding-top:0}
+.row .t{font-weight:700} .row .d{font-size:12px;color:var(--muted)} .row .p{font-size:20px;font-weight:800}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.pick:first-of-type{border-top:0}
+.edge{font-weight:800;font-size:14px;min-width:58px;text-align:right}
+.pos{color:var(--accent)} .neg{color:var(--dim)}
+.cmp{display:grid;grid-template-columns:52px minmax(0,1fr) 52px;gap:8px;align-items:center;font-size:14px;margin:8px 0}
+.cmp .l{font-weight:700} .cmp .r{font-weight:700;text-align:right}
+.cmp .c{display:flex;flex-direction:column;gap:4px;align-items:center}
+.cmp .c span{font-size:12px;color:var(--muted)}
+.duo{display:flex;width:100%;height:6px;border-radius:3px;overflow:hidden;background:var(--line)}
+.duo i{display:block;height:6px}
+.duo .a{background:var(--blue)} .duo .b{background:var(--accent)}
+.better{color:var(--text)} .worse{color:var(--dim)}
+.form{display:flex;gap:4px}
+.form i{width:16px;height:16px;border-radius:4px;display:inline-block;font-style:normal;font-size:10px;font-weight:800;
+  display:flex;align-items:center;justify-content:center}
+.form .w{background:rgba(91,214,138,.18);color:var(--win)} .form .l{background:rgba(255,107,107,.15);color:var(--lose)}
+.tbl{display:grid;grid-template-columns:76px repeat(3,minmax(0,1fr));gap:6px;font-size:13px;align-items:center}
+.tbl .hd{color:var(--muted);text-align:center;font-size:12px}
+.tbl .v{background:var(--card2);border-radius:8px;padding:7px 0;text-align:center;font-weight:700}
+.cta{display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:16px;background:var(--accent);
+  color:var(--accent-ink);font-size:16px;font-weight:800;border:0;width:100%;cursor:pointer}
+.note{color:#8B94A1;font-size:12px;line-height:1.5;padding:4px 16px 16px}
+.nav{position:fixed;left:0;right:0;bottom:0;background:rgba(14,17,22,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);
+  display:flex;justify-content:center;padding:6px 0 calc(6px + env(safe-area-inset-bottom));z-index:5}
+.nav div{display:flex;max-width:520px;width:100%}
+.nav button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;
+  font-size:11px;font-weight:700;color:var(--dim);cursor:pointer}
+.nav button.on{color:var(--accent)}
+.nav svg{width:22px;height:22px}
+.res{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.res:first-of-type{border-top:0}
+.tag{font-size:11px;font-weight:800;padding:2px 6px;border-radius:6px}
+.tag.win{background:rgba(91,214,138,.18);color:var(--win)} .tag.lose{background:rgba(255,107,107,.15);color:var(--lose)}
+.skel{height:64px;margin:0 16px 8px;border-radius:16px;background:linear-gradient(90deg,#151920,#1B2029,#151920);
+  background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.pro{background:#1A2110;border:1px solid #3A4A1E}
+.li{display:flex;gap:10px;margin:8px 0;font-size:14px;color:#E3E7EC}.li b{color:var(--accent)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="nav" id="nav"><div>
+  <button data-go="#/" id="nv-m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6c3.6 3.6 3.6 9.2 0 12.8M18.4 5.6c-3.6 3.6-3.6 9.2 0 12.8"/></svg>Матчи</button>
+  <button data-go="#/results" id="nv-r"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Результаты</button>
+  <button data-go="#/pro" id="nv-p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>PRO</button>
+</div></nav>
+<script>
+const tg = window.Telegram && window.Telegram.WebApp;
+const BOT = "Tennis_inside_bot";
+const $app = document.getElementById("app");
+const S = {index: null, results: null, day: null, filter: "all", cache: {}};
+const pct = x => x == null ? "—" : Math.round(x * 100) + "%";
+const fx = (x, d = 2) => x == null ? "—" : Number(x).toFixed(d);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const initials = n => esc(String(n || "").replace(/[.\-]/g, " ").split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase());
+const SURF = {Hard: "хард", Clay: "грунт", Grass: "трава"};
+const flag = c => c && c.length === 2 ? String.fromCodePoint(...[...c.toUpperCase()].map(ch => 127397 + ch.charCodeAt(0))) : "";
+
+if (tg) {
+  tg.ready(); tg.expand();
+  try { tg.setHeaderColor("#0E1116"); tg.setBackgroundColor("#0E1116"); } catch (e) {}
+  tg.BackButton.onClick(() => history.length > 1 ? history.back() : (location.hash = "#/"));
+}
+const haptic = () => { try { tg && tg.HapticFeedback.selectionChanged(); } catch (e) {} };
+const openBot = payload => {
+  const url = `https://t.me/${BOT}?start=${payload}`;
+  if (tg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, "_blank");
+};
+
+async function getJSON(path) {
+  if (S.cache[path]) return S.cache[path];
+  const r = await fetch(path + (path.includes("?") ? "&" : "?") + "v=" + Math.floor(Date.now() / 120000));
+  if (!r.ok) throw new Error(r.status);
+  return (S.cache[path] = await r.json());
+}
+
+document.querySelectorAll("[data-go]").forEach(b => b.onclick = () => { haptic(); location.hash = b.dataset.go; });
+window.addEventListener("hashchange", route);
+
+function setNav(which) {
+  ["m", "r", "p"].forEach(k => document.getElementById("nv-" + k).classList.toggle("on", k === which));
+  if (tg) which === "x" ? tg.BackButton.show() : tg.BackButton.hide();
+}
+
+function dayLabel(d) {
+  const t = new Date(); const iso = x => x.toISOString().slice(0, 10);
+  const today = iso(new Date(t.getTime() + 3 * 3600e3));
+  const dd = new Date(d + "T12:00:00Z");
+  const diff = Math.round((dd - new Date(today + "T12:00:00Z")) / 864e5);
+  const name = {"-1": "Вчера", "0": "Сегодня", "1": "Завтра"}[diff];
+  const ds = dd.toLocaleDateString("ru-RU", {day: "numeric", month: "short"});
+  return name ? `${name}, ${ds}` : ds;
+}
+
+// ---------------------------------------------------------------- список матчей
+async function viewList() {
+  setNav("m");
+  if (!S.index) $app.innerHTML = header() + '<div class="skel"></div>'.repeat(6);
+  try { S.index = await getJSON("data/index.json"); } catch (e) { $app.innerHTML = header() + `<div class="empty">Не удалось загрузить данные. Попробуйте позже.</div>`; return; }
+  const days = S.index.days || [];
+  if (!S.day || !days.find(d => d.date === S.day)) {
+    const today = new Date(Date.now() + 3 * 3600e3).toISOString().slice(0, 10);
+    S.day = (days.find(d => d.date === today) || days[days.length - 1] || {}).date;
+  }
+  const day = days.find(d => d.date === S.day);
+  let html = header();
+  html += `<div class="tabs">${days.map(d => `<button class="chip ${d.date === S.day ? "on" : ""}" data-day="${d.date}">${dayLabel(d.date)}</button>`).join("")}</div>`;
+  const F = [["all", "Все"], ["value", "С перевесом"], ["tour", "ATP"], ["challenger", "Челленджеры"]];
+  html += `<div class="tabs">${F.map(([k, v]) => `<button class="chip ${S.filter === k ? "on" : ""}" data-f="${k}">${v}</button>`).join("")}</div>`;
+  let n = 0;
+  for (const t of (day ? day.tournaments : [])) {
+    let ms = t.matches;
+    if (S.filter === "value") ms = ms.filter(m => m.value > 0);
+    if (S.filter === "tour" && t.level === "challenger") ms = [];
+    if (S.filter === "challenger" && t.level !== "challenger") ms = [];
+    if (!ms.length) continue;
+    n += ms.length;
+    const lv = t.level === "challenger" ? '<span class="badge ch">CH</span>' : '<span class="badge atp">ATP</span>';
+    html += `<div class="sec">${lv}<span class="dot ${t.surface}"></span><span>${esc(t.short || t.name)}${/КВАЛИФ|QUALIF/i.test(t.name) ? " · квал." : ""}</span></div>`;
+    html += ms.map(matchRow).join("");
+  }
+  if (!n) html += `<div class="empty">Матчей нет${S.filter !== "all" ? " по этому фильтру" : ""}.</div>`;
+  html += `<div class="note">Обновлено ${esc(S.index.updated)}. Вероятности — модель Tennis Inside V2, кэфы — Winline. Аналитика, а не гарантия результата.</div>`;
+  $app.innerHTML = html;
+  $app.querySelectorAll("[data-day]").forEach(b => b.onclick = () => { haptic(); S.day = b.dataset.day; viewList(); });
+  $app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { haptic(); S.filter = b.dataset.f; viewList(); });
+  $app.querySelectorAll("[data-id]").forEach(b => b.onclick = () => { haptic(); location.hash = "#/m/" + b.dataset.id; });
+}
+
+function header() {
+  return `<div class="top"><div class="logo"></div><div><div class="brand">Tennis Inside</div><div class="sub">ATP и Challenger · аналитика матчей</div></div></div>`;
+}
+
+function matchRow(m) {
+  const p = m.model_p1;
+  const fin = m.status === "finished";
+  const fav1 = p != null ? p >= 0.5 : (m.o1 && m.o2 ? m.o1 <= m.o2 : false);
+  const pl = (name, rank, isFav, won) => `<div class="pl ${isFav ? "fav" : ""} ${won ? "won" : ""}"><span class="n">${esc(name)}</span>${rank ? `<span class="rk">${rank}</span>` : ""}</div>`;
+  const right = fin ? `<div class="odds"><span class="o">${esc(m.score || "")}</span></div>`
+    : `<div class="odds"><span class="o">${fx(m.o1)}</span><span class="o">${fx(m.o2)}</span></div>`;
+  const pmax = p == null ? null : Math.max(p, 1 - p);
+  return `<div class="match" data-id="${m.id}">
+    <div class="time">${fin ? "FT" : esc(m.time)}</div>
+    <div>${pl(m.p1, m.p1_rank, fav1, fin && m.winner === 1)}${pl(m.p2, m.p2_rank, !fav1, fin && m.winner === 2)}</div>
+    ${right}
+    ${pmax != null ? `<div class="pbar"><i style="width:${Math.round(pmax * 100)}%"></i></div>` : ""}
+    <div class="meta">${m.no_forecast ? "без прогноза" : pmax != null ? `Модель: ${esc(fav1 ? m.p1 : m.p2)} ${pct(pmax)}` : ""}${m.value ? ` <span class="badge val">перевес ×${m.value}</span>` : ""}${m.round ? ` · ${esc(m.round)}` : ""}</div>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- карточка матча
+async function viewMatch(id) {
+  setNav("x");
+  $app.innerHTML = '<div class="skel" style="margin-top:16px"></div>'.repeat(4);
+  let c;
+  try { c = await getJSON(`data/m/${id}.json`); } catch (e) { $app.innerHTML = `<div class="empty">Матч не найден.</div>`; return; }
+  const p1 = c.p1, p2 = c.p2, mo = c.model, mk = c.market;
+  const pm = mo ? mo.p1 : null;
+  const fav = pm != null ? (pm >= 0.5 ? 1 : 2) : 0;
+  const nm = k => esc(k === 1 ? p1.name : p2.name);
+  let h = `<div class="top" style="padding-left:6px"><button class="back" onclick="history.back()" aria-label="Назад"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <div><div style="font-weight:700">${c.level === "challenger" ? "Challenger" : "ATP"} · ${esc(c.short)}</div><div class="sub">${esc(c.round || "")} · ${SURF[c.surface] || ""}${c.indoor ? ", зал" : ""} · ${c.bo === 5 ? "до 3 сетов" : "до 2 сетов"} · ${esc(c.time)}</div></div></div>`;
+  const who = (p, k) => `<div class="who"><div class="ava ${fav === k ? "fav" : ""}">${initials(p.name)}</div><div class="n">${esc(p.name)}</div>
+    <div class="s">${flag(p.country)} ${p.rank ? "ATP " + p.rank : "без рейтинга"}${p.age ? " · " + Math.floor(p.age) + " лет" : ""}</div></div>`;
+  h += `<div class="vs">${who(p1, 1)}<div class="vsx">VS</div>${who(p2, 2)}</div>`;
+  if (c.status === "finished") h += `<div class="card"><div class="h">Итог</div><div class="big"><div>${nm(c.winner)}</div><div class="v" style="font-size:22px">${esc(c.score || "")}</div></div></div>`;
+  if (c.no_forecast) {
+    h += `<div class="card"><div class="sub">${esc(c.no_forecast)}.</div></div>`;
+  } else if (mo) {
+    const fp = fav === 1 ? pm : 1 - pm;
+    const mp = mk && mk.p1 != null ? (fav === 1 ? mk.p1 : 1 - mk.p1) : null;
+    const of = mk ? (fav === 1 ? mk.o1 : mk.o2) : null, oo = mk ? (fav === 1 ? mk.o1_open : mk.o2_open) : null;
+    h += `<div class="card"><div class="h">Победа в матче</div>
+      <div class="big"><div>${nm(fav)}</div><div class="v">${pct(fp)}</div></div>
+      <div class="bar"><i style="width:${Math.round(fp * 100)}%"></i></div>
+      <div class="grid3"><div class="cell"><div class="k">Модель</div><div class="v">${pct(fp)}</div></div>
+      <div class="cell"><div class="k">Рынок</div><div class="v" style="color:var(--blue)">${pct(mp)}</div></div>
+      <div class="cell"><div class="k">Кэф Winline</div><div class="v">${fx(of)}</div>${oo && oo !== of ? `<div class="k">открытие ${fx(oo)}</div>` : ""}</div></div>
+      ${!c.enough_data ? `<div class="sub" style="margin-top:10px;color:var(--warn)">Мало данных по одному из игроков — прогноз менее надёжен.</div>` : ""}</div>`;
+    // сеты
+    const sets = c.sets || {};
+    h += `<div class="card"><div class="h">Счёт по сетам</div><div class="grid${Object.keys(sets).length > 4 ? "3" : "2"}">${Object.entries(sets).map(([k, v]) => `<div class="cell"><div class="k">${k}</div><div class="v">${pct(v)}</div></div>`).join("")}</div>
+      <div style="margin-top:12px">
+      <div class="row"><div><div class="t">1-й сет: ${nm(c.set1.p1 >= .5 ? 1 : 2)}</div><div class="d">${c.set1.o1 ? `кэф ${fx(c.set1.p1 >= .5 ? c.set1.o1 : c.set1.o2)}` : ""}</div></div><div class="p">${pct(Math.max(c.set1.p1, 1 - c.set1.p1))}</div></div>
+      ${c.three_sets != null ? `<div class="row"><div><div class="t">Будет 3-й сет</div></div><div class="p">${pct(c.three_sets)}</div></div>` : ""}
+      <div class="row"><div><div class="t">${nm(c.dog === "p1" ? 1 : 2)} возьмёт сет</div><div class="d">аутсайдер</div></div><div class="p">${pct(c.dog_wins_set)}</div></div>
+      </div></div>`;
+    // тоталы
+    const t = c.total || {}, it = c.it_dog || {};
+    h += `<div class="card"><div class="h">Геймы</div>
+      <div class="grid2" style="margin-bottom:12px"><div class="cell"><div class="k">Ожидаемый тотал</div><div class="v">${fx(t.exp, 1)}</div></div>
+      <div class="cell"><div class="k">Справедливая линия</div><div class="v">${fx(t.fair, 1)}</div></div></div>
+      ${t.line != null ? `<div class="row"><div><div class="t">Тотал ${t.p_over >= .5 ? "больше" : "меньше"} ${t.line}</div><div class="d">линия Winline · кэф ${fx(t.p_over >= .5 ? t.o_over : t.o_under)}</div></div><div class="p">${pct(Math.max(t.p_over, 1 - t.p_over))}</div></div>` : ""}
+      ${Object.entries(it.lines || {}).map(([L, p]) => `<div class="row"><div><div class="t">ИТ ${nm(c.dog === "p1" ? 1 : 2)} больше ${L}</div><div class="d">аутсайдер · ожидание ${fx(it.exp, 1)} гейма</div></div><div class="p">${pct(p)}</div></div>`).join("")}
+      ${c.hcp ? `<div class="row"><div><div class="t">Фора ${nm(c.hcp.p1 >= .5 ? 1 : 2)} (${fmtL(c.hcp.p1 >= .5 ? c.hcp.line_p1 : -c.hcp.line_p1)})</div><div class="d">линия Winline · кэф ${fx(c.hcp.p1 >= .5 ? c.hcp.o1 : c.hcp.o2)}</div></div><div class="p">${pct(Math.max(c.hcp.p1, 1 - c.hcp.p1))}</div></div>` : ""}
+      </div>`;
+    // перевес
+    const picks = (c.picks || []).filter(p => p.odds);
+    if (picks.length) h += `<div class="card"><div class="h">Модель против линии</div>${picks.slice(0, 6).map(p => `
+      <div class="pick"><div><div style="font-weight:700">${esc(p.label)}</div><div class="sub">модель ${pct(p.p)} · рынок ${pct(1 / p.odds)}</div></div>
+      <div class="o">${fx(p.odds)}</div><div class="edge ${p.edge > 0 ? "pos" : "neg"}">${p.edge > 0 ? "+" : ""}${Math.round(p.edge * 100)}%${p.value ? " ★" : ""}</div></div>`).join("")}
+      <div class="sub" style="margin-top:8px">Перевес = вероятность модели × кэф − 1. ★ — перевес от 5% при кэфе до 3.</div></div>`;
+  }
+  // подача и приём
+  const R = [["ace", "Эйсы, % очков"], ["df", "Двойные, % очков", true], ["first_in", "% первой подачи"], ["first_won", "Очки на 1-й подаче"],
+             ["second_won", "Очки на 2-й подаче"], ["hold", "Взятые геймы на подаче"], ["bp_saved", "Спасено брейк-пойнтов"],
+             ["ret_won", "Очки на приёме"], ["brk", "Брейки за гейм приёма"]];
+  h += `<div class="card"><div class="h">Подача и приём · свежая форма</div>${R.map(([k, lab, low]) => cmp(p1.stats[k], p2.stats[k], lab, low)).join("")}
+    <div style="display:flex;justify-content:space-between" class="sub"><span>${esc(p1.name)}</span><span>${esc(p2.name)}</span></div></div>`;
+  // по сетам
+  const bs1 = p1.by_set || {}, bs2 = p2.by_set || {};
+  if (bs1.set1 || bs2.set1) h += `<div class="card"><div class="h">Очки на своей подаче по сетам</div><div class="tbl">
+    <div></div><div class="hd">1-й сет</div><div class="hd">2-й сет</div><div class="hd">3-й сет</div>
+    <div>${esc(p1.name)}</div>${["set1", "set2", "set3"].map(s => `<div class="v">${pct(bs1[s])}</div>`).join("")}
+    <div>${esc(p2.name)}</div>${["set1", "set2", "set3"].map(s => `<div class="v">${pct(bs2[s])}</div>`).join("")}</div>
+    <div class="sub" style="margin-top:8px">Последние ${Math.max(bs1.n || 0, bs2.n || 0)} матчей со статистикой: держится ли подача к концу матча.</div></div>`;
+  // форма, нагрузка, рейтинг
+  const fm = f => `<span class="form">${(f || []).slice(-10).map(x => `<i class="${x ? "w" : "l"}">${x ? "В" : "П"}</i>`).join("")}</span>`;
+  h += `<div class="card"><div class="h">Форма · последние 10</div>
+    <div class="row"><div class="t">${esc(p1.name)}</div>${fm(p1.form)}</div><div class="row"><div class="t">${esc(p2.name)}</div>${fm(p2.form)}</div></div>`;
+  h += `<div class="card"><div class="h">Сила и нагрузка</div>
+    ${cmp(p1.elo, p2.elo, "Рейтинг Эло", false, 0)}${cmp(p1.selo, p2.selo, `Эло на покрытии (${SURF[c.surface] || ""})`, false, 0)}
+    ${cmp(p1.m14, p2.m14, "Матчей за 14 дней", true, 0)}${cmp(p1.rest, p2.rest, "Дней отдыха", false, 0)}
+    ${cmp(p1.matches, p2.matches, "Матчей в базе", false, 0)}</div>`;
+  const hh = c.h2h || {};
+  h += `<div class="card"><div class="h">Личные встречи</div><div class="big"><div>${esc(p1.name)} ${hh.a || 0} : ${hh.b || 0} ${esc(p2.name)}</div></div>
+    ${hh.last ? `<div class="sub" style="margin-top:6px">Последняя: ${esc(hh.last.date)}, победил ${hh.last.winner === "a" ? esc(p1.name) : esc(p2.name)} (${esc(hh.last.score)})</div>` : `<div class="sub" style="margin-top:6px">Ещё не встречались</div>`}</div>`;
+  if (c.status !== "finished" && !c.no_forecast) h += `<div style="padding:4px 16px 8px"><button class="cta" id="ai"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/></svg>ИИ-разбор матча</button></div>`;
+  h += `<div class="note">Разбор пришлёт бот в чат. Аналитика, а не гарантия результата; ставки — на ваш риск, 18+.</div>`;
+  $app.innerHTML = h;
+  const ai = document.getElementById("ai");
+  if (ai) ai.onclick = () => { haptic(); openBot("ai_" + c.id); };
+  window.scrollTo(0, 0);
+}
+
+function fmtL(x) { return (x > 0 ? "+" : "") + x; }
+
+function cmp(a, b, label, lowerBetter, digits) {
+  const isPct = digits === undefined;
+  const f = x => x == null ? "—" : isPct ? (x * 100).toFixed(x < 0.1 ? 1 : 0) + "%" : Math.round(x);
+  const A = a ?? 0, B = b ?? 0, tot = Math.abs(A) + Math.abs(B) || 1;
+  const aBetter = lowerBetter ? A < B : A > B;
+  return `<div class="cmp"><div class="l ${a == null || A === B ? "" : aBetter ? "better" : "worse"}">${f(a)}</div>
+    <div class="c"><span>${esc(label)}</span><div class="duo"><i class="a" style="width:${Math.abs(A) / tot * 100}%"></i><i class="b" style="width:${Math.abs(B) / tot * 100}%"></i></div></div>
+    <div class="r ${b == null || A === B ? "" : !aBetter ? "better" : "worse"}">${f(b)}</div></div>`;
+}
+
+// ---------------------------------------------------------------- результаты
+async function viewResults() {
+  setNav("r");
+  $app.innerHTML = header() + '<div class="skel"></div>'.repeat(4);
+  let r;
+  try { r = await getJSON("data/results.json"); } catch (e) { $app.innerHTML = header() + `<div class="empty">Результатов пока нет.</div>`; return; }
+  let h = header() + `<div class="sec">Каждый прогноз фиксируется до начала матча по кэфу Winline на тот момент. Ставка — 1 единица.</div>`;
+  if (!(r.markets || []).length) h += `<div class="empty">Журнал только начал копиться — первые итоги появятся, когда сыграют матчи.</div>`;
+  else h += `<div class="card"><div class="h">По рынкам</div>${r.markets.map(m => `
+    <div class="row"><div><div class="t">${esc(m.market)}</div><div class="d">${esc(m.sel)} · ${m.n} ставок · зашло ${pct(m.win)} · ср. кэф ${fx(m.avg_odds)}</div></div>
+    <div style="text-align:right"><div class="p ${m.roi >= 0 ? "pos" : ""}" style="${m.roi < 0 ? "color:var(--lose)" : ""}">${m.roi >= 0 ? "+" : ""}${(m.roi * 100).toFixed(1)}%</div><div class="d">${m.profit >= 0 ? "+" : ""}${fx(m.profit, 1)} ед.</div></div></div>`).join("")}</div>`;
+  if ((r.recent || []).length) h += `<div class="card"><div class="h">Последние сигналы</div>${r.recent.map(x => `
+    <div class="res"><div><div style="font-weight:700">${esc(x.label)}</div><div class="sub">${esc(x.match)} · ${esc(x.date)}${x.score ? " · " + esc(x.score) : ""}</div></div>
+    <div style="text-align:right"><span class="tag ${x.result}">${x.result === "win" ? "+" + fx(x.odds - 1) : "−1"}</span><div class="sub">кэф ${fx(x.odds)}</div></div></div>`).join("")}</div>`;
+  h += `<div class="note">Обновлено ${esc(r.updated || "")}. Прошлые результаты не гарантируют будущих.</div>`;
+  $app.innerHTML = h;
+}
+
+// ---------------------------------------------------------------- PRO
+function viewPro() {
+  setNav("p");
+  $app.innerHTML = header() + `
+  <div class="card pro" style="margin-top:6px"><div class="big"><div style="font-size:18px;font-weight:800">Tennis Inside PRO</div></div>
+    <div class="li"><b>●</b><span>ИИ-разбор любого матча: кто фаворит и почему, подача и приём, усталость, покрытие</span></div>
+    <div class="li"><b>●</b><span>Сигналы с перевесом над линией — сразу в чат</span></div>
+    <div class="li"><b>●</b><span>Полная статистика и журнал каждой ставки</span></div>
+    <div style="margin-top:14px"><button class="cta" id="buy">Оформить в боте</button></div>
+    <div class="sub" style="margin-top:10px">Оплата — звёздами Telegram прямо в чате с ботом. Первые разборы — бесплатно.</div></div>
+  <div class="note">Аналитика, а не гарантия результата. 18+.</div>`;
+  document.getElementById("buy").onclick = () => { haptic(); openBot("pro"); };
+}
+
+function route() {
+  const h = location.hash || "#/";
+  const m = h.match(/^#\/m\/([\w-]+)/);
+  if (m) return viewMatch(m[1]);
+  if (h.startsWith("#/results")) return viewResults();
+  if (h.startsWith("#/pro")) return viewPro();
+  return viewList();
+}
+// открыть сразу матч, если бот передал start_param = m_<id>
+const sp = tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param;
+if (sp && sp.startsWith("m_") && !location.hash) location.hash = "#/m/" + sp.slice(2);
+route();
+</script>
+</body>
+</html>
