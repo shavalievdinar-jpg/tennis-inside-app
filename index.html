@@ -122,6 +122,8 @@ button{font-family:inherit;color:inherit}
   <button data-go="#/pro" id="nv-p"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>PRO</button>
 </div></nav>
 <script>
+const PFN = {R1: "Лёгкий фаворит 1.60–1.85", R2: "Равная зона 1.85–2.10", R3: "Переворот 2.10–2.50", R4: "Фора +1.5 аутсайдера"};
+
 const tg = window.Telegram && window.Telegram.WebApp;
 const BOT = "Tennis_inside_bot";
 const $app = document.getElementById("app");
@@ -182,12 +184,13 @@ async function viewList() {
   const day = days.find(d => d.date === S.day);
   let html = header();
   html += `<div class="tabs">${days.map(d => `<button class="chip ${d.date === S.day ? "on" : ""}" data-day="${d.date}">${dayLabel(d.date)}</button>`).join("")}</div>`;
-  const F = [["all", "Все"], ["value", "С перевесом"], ["tour", "ATP"], ["challenger", "Челленджеры"]];
+  const F = [["all", "Все"], ["pf", "▣ Портфель"], ["value", "С перевесом"], ["tour", "ATP"], ["challenger", "Челленджеры"]];
   html += `<div class="tabs">${F.map(([k, v]) => `<button class="chip ${S.filter === k ? "on" : ""}" data-f="${k}">${v}</button>`).join("")}</div>`;
   let n = 0;
   for (const t of (day ? day.tournaments : [])) {
     let ms = t.matches;
     if (S.filter === "value") ms = ms.filter(m => m.value > 0);
+    if (S.filter === "pf") ms = ms.filter(m => m.pf > 0);
     if (S.filter === "tour" && t.level === "challenger") ms = [];
     if (S.filter === "challenger" && t.level !== "challenger") ms = [];
     if (!ms.length) continue;
@@ -221,7 +224,7 @@ function matchRow(m) {
     <div>${pl(m.p1, m.p1_rank, fav1, fin && m.winner === 1)}${pl(m.p2, m.p2_rank, !fav1, fin && m.winner === 2)}</div>
     ${right}
     ${pmax != null ? `<div class="pbar"><i style="width:${Math.round(pmax * 100)}%"></i></div>` : ""}
-    <div class="meta">${m.no_forecast ? "без прогноза" : pmax != null ? `Модель: ${esc(fav1 ? m.p1 : m.p2)} ${pct(pmax)}` : ""}${m.value ? ` <span class="badge val">перевес ×${m.value}</span>` : ""}${m.round ? ` · ${esc(m.round)}` : ""}</div>
+    <div class="meta">${m.no_forecast ? "без прогноза" : pmax != null ? `Модель: ${esc(fav1 ? m.p1 : m.p2)} ${pct(pmax)}` : ""}${m.pf ? ` <span class="badge val">▣ портфель</span>` : m.value ? ` <span class="badge">перевес ×${m.value}</span>` : ""}${m.round ? ` · ${esc(m.round)}` : ""}</div>
   </div>`;
 }
 
@@ -271,19 +274,12 @@ async function viewMatch(id) {
       ${Object.entries(it.lines || {}).map(([L, p]) => `<div class="row"><div><div class="t">ИТ ${nm(c.dog === "p1" ? 1 : 2)} больше ${L}</div><div class="d">аутсайдер · ожидание ${fx(it.exp, 1)} гейма</div></div><div class="p">${pct(p)}</div></div>`).join("")}
       ${c.hcp ? `<div class="row"><div><div class="t">Фора ${nm(c.hcp.p1 >= .5 ? 1 : 2)} (${fmtL(c.hcp.p1 >= .5 ? c.hcp.line_p1 : -c.hcp.line_p1)})</div><div class="d">линия Winline · кэф ${fx(c.hcp.p1 >= .5 ? c.hcp.o1 : c.hcp.o2)}</div></div><div class="p">${pct(Math.max(c.hcp.p1, 1 - c.hcp.p1))}</div></div>` : ""}
       </div>`;
-    if (c.server_dog) {
-      const dn = nm(c.dog === "p1" ? 1 : 2), it = (c.it_dog || {}).lines || {};
-      h += `<div class="card" style="border-color:#3A4A1E"><div class="h" style="color:var(--accent)">◇ Подающий аутсайдер</div>
-        <div style="font-size:14px;line-height:1.5">${dn} держит ${pct(c.server_dog.srv)} очков на своей подаче против этого соперника — букмекер часто недооценивает, сколько геймов он возьмёт.</div>
-        ${["9.5", "10.5"].filter(L => it[L]).map(L => `<div class="row"><div><div class="t">ИТБ ${dn} больше ${L}</div><div class="d">выгодно при кэфе выше ${fx(1 / it[L])} — сверьте в БК</div></div><div class="p">${pct(it[L])}</div></div>`).join("")}
-        <div class="sub" style="margin-top:6px">Кандидат: в 2026 фора +3.5 по этому правилу дала +9% на 132 ставках.</div></div>`;
-    }
     // перевес
     const picks = (c.picks || []).filter(p => p.odds);
     if (picks.length) h += `<div class="card"><div class="h">Модель против линии</div>${picks.slice(0, 6).map(p => `
-      <div class="pick"><div><div style="font-weight:700">${esc(p.label)}</div><div class="sub">модель ${pct(p.p)} · рынок ${pct(1 / p.odds)}</div></div>
+      <div class="pick"${p.pf ? ' style="border-left:3px solid var(--accent);padding-left:8px"' : ""}><div><div style="font-weight:700">${p.pf ? "▣ " : ""}${esc(p.label)}</div><div class="sub">${p.pf ? `<b style="color:var(--accent)">${esc(PFN[p.pf] || "")}</b> · ` : ""}модель ${pct(p.p)} · рынок ${pct(1 / p.odds)}</div></div>
       <div class="o">${fx(p.odds)}</div><div class="edge ${p.edge > 0 ? "pos" : "neg"}">${p.edge > 0 ? "+" : ""}${Math.round(p.edge * 100)}%${p.value ? " ★" : ""}</div></div>`).join("")}
-      <div class="sub" style="margin-top:8px">Перевес = вероятность модели × кэф − 1. ★ — перевес от 5% при кэфе до 3.</div></div>`;
+      <div class="sub" style="margin-top:8px">Перевес = вероятность модели × кэф − 1. ▣ — ставка по правилам Портфеля V2 (перевес ≥ 8%). ★ — перевес от 5% при кэфе до 3.</div></div>`;
   }
   // подача и приём
   const R = [["ace", "Эйсы, % очков"], ["df", "Двойные, % очков", true], ["first_in", "% первой подачи"], ["first_won", "Очки на 1-й подаче"],
