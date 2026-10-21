@@ -271,6 +271,13 @@ async function viewMatch(id) {
       ${Object.entries(it.lines || {}).map(([L, p]) => `<div class="row"><div><div class="t">ИТ ${nm(c.dog === "p1" ? 1 : 2)} больше ${L}</div><div class="d">аутсайдер · ожидание ${fx(it.exp, 1)} гейма</div></div><div class="p">${pct(p)}</div></div>`).join("")}
       ${c.hcp ? `<div class="row"><div><div class="t">Фора ${nm(c.hcp.p1 >= .5 ? 1 : 2)} (${fmtL(c.hcp.p1 >= .5 ? c.hcp.line_p1 : -c.hcp.line_p1)})</div><div class="d">линия Winline · кэф ${fx(c.hcp.p1 >= .5 ? c.hcp.o1 : c.hcp.o2)}</div></div><div class="p">${pct(Math.max(c.hcp.p1, 1 - c.hcp.p1))}</div></div>` : ""}
       </div>`;
+    if (c.server_dog) {
+      const dn = nm(c.dog === "p1" ? 1 : 2), it = (c.it_dog || {}).lines || {};
+      h += `<div class="card" style="border-color:#3A4A1E"><div class="h" style="color:var(--accent)">◇ Подающий аутсайдер</div>
+        <div style="font-size:14px;line-height:1.5">${dn} держит ${pct(c.server_dog.srv)} очков на своей подаче против этого соперника — букмекер часто недооценивает, сколько геймов он возьмёт.</div>
+        ${["9.5", "10.5"].filter(L => it[L]).map(L => `<div class="row"><div><div class="t">ИТБ ${dn} больше ${L}</div><div class="d">выгодно при кэфе выше ${fx(1 / it[L])} — сверьте в БК</div></div><div class="p">${pct(it[L])}</div></div>`).join("")}
+        <div class="sub" style="margin-top:6px">Кандидат: в 2026 фора +3.5 по этому правилу дала +9% на 132 ставках.</div></div>`;
+    }
     // перевес
     const picks = (c.picks || []).filter(p => p.odds);
     if (picks.length) h += `<div class="card"><div class="h">Модель против линии</div>${picks.slice(0, 6).map(p => `
