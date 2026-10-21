@@ -325,10 +325,15 @@ function cmp(a, b, label, lowerBetter, digits) {
 // ---------------------------------------------------------------- результаты
 async function viewResults() {
   setNav("r");
-  $app.innerHTML = header() + '<div class="skel"></div>'.repeat(4);
+  S.rtab = S.rtab || "retro";
+  const tabs = `<div class="tabs">${[["retro", "2026 с начала года"], ["live", "Живой журнал"]].map(([k, v]) =>
+    `<button class="chip ${S.rtab === k ? "on" : ""}" data-rt="${k}">${v}</button>`).join("")}</div>`;
+  $app.innerHTML = header() + tabs + '<div class="skel"></div>'.repeat(4);
+  const bind = () => $app.querySelectorAll("[data-rt]").forEach(b => b.onclick = () => { haptic(); S.rtab = b.dataset.rt; viewResults(); });
+  if (S.rtab === "retro") return viewRetro(tabs, bind);
   let r;
-  try { r = await getJSON("data/results.json"); } catch (e) { $app.innerHTML = header() + `<div class="empty">Результатов пока нет.</div>`; return; }
-  let h = header() + `<div class="sec">Каждый прогноз фиксируется до начала матча по кэфу Winline на тот момент. Ставка — 1 единица.</div>`;
+  try { r = await getJSON("data/results.json"); } catch (e) { $app.innerHTML = header() + tabs + `<div class="empty">Результатов пока нет.</div>`; bind(); return; }
+  let h = header() + tabs + `<div class="sec">Каждый прогноз фиксируется до начала матча по кэфу Winline на тот момент. Ставка — 1 единица.</div>`;
   if (!(r.markets || []).length) h += `<div class="empty">Журнал только начал копиться — первые итоги появятся, когда сыграют матчи.</div>`;
   else h += `<div class="card"><div class="h">По рынкам</div>${r.markets.map(m => `
     <div class="row"><div><div class="t">${esc(m.market)}</div><div class="d">${esc(m.sel)} · ${m.n} ставок · зашло ${pct(m.win)} · ср. кэф ${fx(m.avg_odds)}</div></div>
@@ -337,7 +342,61 @@ async function viewResults() {
     <div class="res"><div><div style="font-weight:700">${esc(x.label)}</div><div class="sub">${esc(x.match)} · ${esc(x.date)}${x.score ? " · " + esc(x.score) : ""}</div></div>
     <div style="text-align:right"><span class="tag ${x.result}">${x.result === "win" ? "+" + fx(x.odds - 1) : "−1"}</span><div class="sub">кэф ${fx(x.odds)}</div></div></div>`).join("")}</div>`;
   h += `<div class="note">Обновлено ${esc(r.updated || "")}. Прошлые результаты не гарантируют будущих.</div>`;
-  $app.innerHTML = h;
+  $app.innerHTML = h; bind();
+}
+
+const rubf = (x, sign) => (sign && x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(Math.round(x)).toLocaleString("ru-RU") + " ₽";
+
+function spark(curve, bank0) {
+  if (!curve || curve.length < 2) return "";
+  const W = 320, H = 90, ys = curve.map(c => c[1]), mn = Math.min(bank0, ...ys), mx = Math.max(bank0, ...ys);
+  const X = i => (i / (curve.length - 1)) * W, Y = v => H - 6 - ((v - mn) / (mx - mn || 1)) * (H - 12);
+  const d = curve.map((c, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(c[1]).toFixed(1)}`).join("");
+  const up = ys[ys.length - 1] >= bank0;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block;margin:6px 0 4px">
+    <line x1="0" x2="${W}" y1="${Y(bank0)}" y2="${Y(bank0)}" stroke="#3A414D" stroke-dasharray="4 4"/>
+    <path d="${d}" fill="none" stroke="${up ? "var(--accent)" : "var(--lose)"}" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+    <div style="display:flex;justify-content:space-between" class="sub"><span>${esc(curve[0][0])}</span><span>старт ${rubf(bank0)}</span><span>${esc(curve[curve.length - 1][0])}</span></div>`;
+}
+
+async function viewRetro(tabs, bind) {
+  let r;
+  try { r = await getJSON("data/retro.json"); } catch (e) { $app.innerHTML = header() + tabs + `<div class="empty">Ретро-прогон ещё не собран.</div>`; bind(); return; }
+  let h = header() + tabs + `<div class="sec">Как будто бот работал с 1 января: модель на каждом матче 2026 знала только прошлое. Банк ${rubf(r.bank0)}, ставка ${rubf(r.stake)}, кэф — первая линия Winline.</div>`;
+  for (const s of r.strategies) {
+    const roiC = s.roi_open >= 0 ? "var(--accent)" : "var(--lose)";
+    h += `<div class="card ${s.kind === "validated" ? "pro" : ""}">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-weight:800;font-size:16px">${esc(s.name)}</div>
+      <span class="badge ${s.kind === "validated" ? "val" : ""}">${s.kind === "validated" ? "проверена" : "кандидат"}</span></div>
+      <div class="sub" style="margin:6px 0 10px">${esc(s.note)}</div>
+      <div class="grid3">
+        <div class="cell"><div class="k">ROI (первая линия)</div><div class="v" style="color:${roiC}">${s.roi_open >= 0 ? "+" : ""}${(s.roi_open * 100).toFixed(1)}%</div></div>
+        <div class="cell"><div class="k">Прибыль</div><div class="v" style="color:${roiC};font-size:15px">${rubf(s.profit, true)}</div></div>
+        <div class="cell"><div class="k">Банк</div><div class="v" style="font-size:15px">${rubf(s.bank)}</div></div>
+        <div class="cell"><div class="k">Ставок · зашло</div><div class="v" style="font-size:15px">${s.n} · ${pct(s.win)}</div></div>
+        <div class="cell"><div class="k">Ср. кэф</div><div class="v" style="font-size:15px">${fx(s.avg_odds)}</div></div>
+        <div class="cell"><div class="k">Макс. просадка</div><div class="v" style="font-size:15px">${rubf(s.dd)}</div></div>
+      </div>
+      ${spark(s.curve, r.bank0)}
+      ${s.roi_close != null ? `<div class="sub" style="margin-top:6px">Если ставить перед самым матчем (кэф закрытия): ROI ${s.roi_close >= 0 ? "+" : ""}${(s.roi_close * 100).toFixed(1)}%</div>` : ""}
+      <div style="margin-top:10px">${(s.months || []).map(m => `<div class="row" style="padding:7px 0"><div class="d" style="font-size:13px">${esc(m.m)} · ${m.n} ставок</div>
+        <div style="font-weight:700;color:${m.roi >= 0 ? "var(--accent)" : "var(--lose)"}">${m.roi >= 0 ? "+" : ""}${(m.roi * 100).toFixed(1)}% · ${rubf(m.profit, true)}</div></div>`).join("")}</div>
+      <button class="chip" style="margin-top:10px;width:100%" data-bets="${s.id}">Все ставки (${s.n})</button>
+      <div id="bets-${s.id}"></div></div>`;
+  }
+  h += `<div class="note">Обновлено ${esc(r.updated)}. Прошлые результаты не гарантируют будущих; кандидаты выбраны по тем же данным 2026 и проверяются на новых матчах.</div>`;
+  $app.innerHTML = h; bind();
+  $app.querySelectorAll("[data-bets]").forEach(b => b.onclick = () => {
+    haptic();
+    const s = r.strategies.find(z => z.id === b.dataset.bets), box = document.getElementById("bets-" + s.id);
+    const shown = +(box.dataset.n || 0), next = shown + 40;
+    box.innerHTML = s.bets.slice(0, next).map(x => `<div class="res"><div><div style="font-weight:700">${esc(x.pick)}</div>
+      <div class="sub">${esc(x.match)} · ${esc(x.date)}</div></div>
+      <div style="text-align:right"><span class="tag ${x.result}">${x.result === "win" ? "+" + fx(x.odds - 1) : "−1"}</span>
+      <div class="sub">кэф ${fx(x.odds)}${x.odds_close ? " → " + fx(x.odds_close) : ""}</div></div></div>`).join("");
+    box.dataset.n = next;
+    b.textContent = next >= s.bets.length ? `Показаны последние ${Math.min(next, s.bets.length)}` : "Показать ещё";
+  });
 }
 
 // ---------------------------------------------------------------- PRO
