@@ -225,7 +225,8 @@ const tipCard = (x, st) => `<div class="card tipc" data-id="${esc(x.id)}">
   <div style="font-weight:700;margin:6px 0 2px">${esc(x.p1)} — ${esc(x.p2)}</div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px">
     <div><div style="font-weight:800;font-size:16px;color:var(--accent)">${esc(x.pick)}</div><div class="sub">${esc(x.group)}${x.score ? " · счёт " + esc(x.score) : ""}</div></div>
-    <div class="o" style="font-size:16px;padding:6px 10px">${fx(x.odds)}</div></div></div>`;
+    <div class="o" style="font-size:16px;padding:6px 10px">${fx(x.odds)}</div></div>
+  ${x.hint ? `<div class="sub" style="margin-top:8px;border-top:1px solid #1F2630;padding-top:6px">💡 ${esc(x.hint)}</div>` : ""}</div>`;
 const resTag = x => x.result === "win" ? `<span class="tag win">зашла · +${fx(x.odds - 1)}</span>` : x.result === "lose" ? `<span class="tag lose">не зашла</span>`
   : `<span class="tag" style="background:#1F2630;color:var(--muted)">возврат</span>`;
 
@@ -321,7 +322,7 @@ async function viewMatch(id) {
     const picks = (c.picks || []).filter(p => p.odds);
     if (picks.length) h += `<div class="card"><div class="h">Модель против линии</div>${picks.slice(0, 6).map(p => `
       <div class="pick"${p.tip ? ' style="border-left:3px solid var(--accent);padding-left:8px"' : ""}><div><div style="font-weight:700">${p.tip ? "★ " : ""}${esc(p.label)}</div><div class="sub">${p.tip ? `<b style="color:var(--accent)">Прогноз Tennis Inside · ${esc(p.tip)}</b> · ` : ""}модель ${pct(p.p)} · рынок ${pct(1 / p.odds)}</div></div>
-      <div class="o">${fx(p.odds)}</div><div class="edge ${p.edge > 0 ? "pos" : "neg"}">${p.edge > 0 ? "+" : ""}${Math.round(p.edge * 100)}%</div></div>`).join("")}
+      <div class="o">${fx(p.odds)}</div><div class="edge ${p.edge > 0 ? "pos" : "neg"}">${p.edge > 0 ? "+" : ""}${Math.round(p.edge * 100)}%</div></div>${p.tip && p.hint ? `<div class="sub" style="margin:-4px 0 8px 11px">💡 ${esc(p.hint)}</div>` : ""}`).join("")}
       <div class="sub" style="margin-top:8px">Перевес = вероятность модели × кэф − 1. ★ — прогноз Tennis Inside по нашим стратегиям; остальные строки — справка, не рекомендация.</div></div>`;
   }
   // подача и приём
